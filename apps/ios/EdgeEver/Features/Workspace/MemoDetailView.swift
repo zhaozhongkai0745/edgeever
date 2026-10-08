@@ -8,7 +8,6 @@ struct MemoDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
     let memoId: String
-    var initialShareImage = false
     /// Present editor from the parent `WorkspaceView` (more reliable than cover on a pushed page).
     var onEdit: (String, MemoEditInitialFocus) -> Void = { _, _ in }
 
@@ -51,7 +50,6 @@ struct MemoDetailView: View {
     @State private var imagePreview: (source: String, alt: String)?
     /// TipTap EditorBundle is ~4MB; keep native text visible until first setContent finishes.
     @State private var bodyReady = false
-    @State private var initialShareImageHandled = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -394,10 +392,6 @@ struct MemoDetailView: View {
             }
             refreshSyncStatus()
             TipTapWarmPool.warmIfNeeded()
-            openInitialShareImageIfReady()
-        }
-        .onChange(of: bodyReady) { _, _ in
-            openInitialShareImageIfReady()
         }
         .task(id: memoId) {
             // Re-load if mirror was empty on first paint (rare race during bootstrap).
@@ -658,7 +652,7 @@ struct MemoDetailView: View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 0) {
                 detailTitleRow(memo)
-                .padding(.top, 8)
+                .padding(.top, 16)
                 .edgeEverSuccessShine(trigger: pinPulse)
 
                 HStack(spacing: 8) {
@@ -666,14 +660,14 @@ struct MemoDetailView: View {
 
                     HStack(spacing: 8) {
                         Image(systemName: "tag")
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(.system(size: 13, weight: .semibold))
                             .foregroundStyle(AppTheme.secondary)
                         Text(
                             memo.tags.isEmpty
                                 ? env.preferences.t("添加标签，用逗号分隔", en: "Add tags, comma separated", pl: "Dodaj tagi, oddzielone przecinkami")
                                 : memo.tags.joined(separator: ", ")
                         )
-                        .font(.system(size: 12))
+                        .font(.system(size: 14))
                         .foregroundStyle(memo.tags.isEmpty ? AppTheme.muted : AppTheme.secondary)
                         .lineLimit(1)
                         .textSelection(.enabled)
@@ -682,7 +676,7 @@ struct MemoDetailView: View {
                     .accessibilityIdentifier(DetailMemoChrome.tags)
                 }
                 .frame(minHeight: 32)
-                .padding(.top, 6)
+                .padding(.top, 12)
                 .accessibilityIdentifier(DetailMemoChrome.metaRow)
 
                 Text(
@@ -845,7 +839,7 @@ struct MemoDetailView: View {
     private func notebookAffiliationLabel(_ memo: MemoDetail) -> some View {
         HStack(spacing: 4) {
             Text(notebookName(for: memo))
-                .font(.system(size: 12))
+                .font(.system(size: 14))
                 .foregroundStyle(AppTheme.secondary)
                 .lineLimit(1)
             Image(systemName: "chevron.down")
@@ -900,7 +894,7 @@ struct MemoDetailView: View {
                 onEdit(memo.id, .title)
             } label: {
                 Text(localizedTitle(for: memo))
-                    .font(.system(size: 18, weight: .bold))
+                    .font(.system(size: 24, weight: .bold))
                     .foregroundStyle(AppTheme.title)
                     .lineLimit(4)
                     .multilineTextAlignment(.leading)
@@ -1107,12 +1101,6 @@ struct MemoDetailView: View {
         try env.mirror.upsertMemo(scope: scope, memo: updated)
         memo = updated
         refreshSyncStatus()
-    }
-
-    private func openInitialShareImageIfReady() {
-        guard initialShareImage, bodyReady, memo?.isDeleted == false, !initialShareImageHandled else { return }
-        initialShareImageHandled = true
-        imageShareOptionsOpen = true
     }
 
     private func shareMemo(_ memo: MemoDetail) async {
